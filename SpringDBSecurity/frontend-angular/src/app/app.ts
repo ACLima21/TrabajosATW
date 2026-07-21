@@ -14,9 +14,15 @@ import { ProductoService } from './services/producto';
 export class App implements OnInit {
 
   usuario = 'admin';
-  clave = 'lima123';
+  clave = 'admin123lima';
 
   productos: Producto[] = [];
+
+  // Estado de paginación
+  paginaActual = 0;
+  tamanioPagina = 5;
+  totalPaginas = 0;
+  totalElementos = 0;
 
   producto: Producto = {
     nombre: '',
@@ -32,18 +38,35 @@ export class App implements OnInit {
   constructor(private productoService: ProductoService) {}
 
   ngOnInit(): void {
-    this.listarProductos();
+    this.cargarPagina(0);
   }
 
-  listarProductos(): void {
-    this.productoService.listar(this.usuario, this.clave).subscribe({
-      next: (data) => {
-        this.productos = data;
-      },
-      error: (error) => {
-        console.error('Error al listar productos', error);
-      }
-    });
+  cargarPagina(page: number): void {
+    this.productoService
+      .listarPaginado(page, this.tamanioPagina, this.usuario, this.clave)
+      .subscribe({
+        next: (data) => {
+          this.productos = data.content;
+          this.paginaActual = data.page;
+          this.totalPaginas = data.totalPages;
+          this.totalElementos = data.totalElements;
+        },
+        error: (error) => {
+          console.error('Error al listar productos paginados', error);
+        }
+      });
+  }
+
+  paginaAnterior(): void {
+    if (this.paginaActual > 0) {
+      this.cargarPagina(this.paginaActual - 1);
+    }
+  }
+
+  paginaSiguiente(): void {
+    if (this.paginaActual < this.totalPaginas - 1) {
+      this.cargarPagina(this.paginaActual + 1);
+    }
   }
 
   guardarProducto(): void {
@@ -55,7 +78,7 @@ export class App implements OnInit {
         this.clave
       ).subscribe({
         next: () => {
-          this.listarProductos();
+          this.cargarPagina(this.paginaActual);
           this.limpiarFormulario();
         },
         error: (error) => {
@@ -69,7 +92,7 @@ export class App implements OnInit {
         this.clave
       ).subscribe({
         next: () => {
-          this.listarProductos();
+          this.cargarPagina(this.paginaActual);
           this.limpiarFormulario();
         },
         error: (error) => {
@@ -100,7 +123,11 @@ export class App implements OnInit {
 
     this.productoService.eliminar(id, this.usuario, this.clave).subscribe({
       next: () => {
-        this.listarProductos();
+        // Si al eliminar el único producto de la última página esta queda vacía,
+        // retrocedemos una página para no mostrar una tabla vacía innecesariamente.
+        const eraUltimoDeLaPagina = this.productos.length === 1 && this.paginaActual > 0;
+        const paginaDestino = eraUltimoDeLaPagina ? this.paginaActual - 1 : this.paginaActual;
+        this.cargarPagina(paginaDestino);
       },
       error: (error) => {
         console.error('Error al eliminar producto', error);

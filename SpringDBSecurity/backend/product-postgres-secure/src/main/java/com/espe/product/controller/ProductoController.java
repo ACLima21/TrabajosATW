@@ -1,5 +1,6 @@
 package com.espe.product.controller;
 
+import com.espe.product.dto.PaginaProductoResponse;
 import com.espe.product.entity.Producto;
 import com.espe.product.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +28,14 @@ public class ProductoController {
         return service.listar(nombre);
     }
 
+    @GetMapping("/paginado")
+    @Operation(summary = "Listar productos activos de forma paginada")
+    public PaginaProductoResponse listarPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return service.listarPaginado(page, size);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar un producto por id")
     public Producto buscar(@PathVariable Long id) {
@@ -49,7 +58,7 @@ public class ProductoController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar un producto; requiere ADMIN")
+    @Operation(summary = "Eliminar (lógicamente) un producto; requiere ADMIN")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         service.eliminar(id);
         return ResponseEntity.noContent().build();

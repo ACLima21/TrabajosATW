@@ -40,3 +40,15 @@ th, td {
 .mensaje {
   font-weight: bold;
 }
+
+.paginador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.paginador button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

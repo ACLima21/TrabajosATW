@@ -4,7 +4,7 @@ import {
   actualizarProducto,
   crearProducto,
   eliminarProducto,
-  listarProductos
+  listarProductosPaginado
 } from './services/productoService';
 
 const productoVacio = {
@@ -15,26 +15,47 @@ const productoVacio = {
   activo: true
 };
 
+const TAMANIO_PAGINA = 5;
+
 function App() {
   const [usuario, setUsuario] = useState('admin');
-  const [clave, setClave] = useState('lima123');
-  const [filtro, setFiltro] = useState('');
+  const [clave, setClave] = useState('admin123lima');
   const [productos, setProductos] = useState([]);
   const [formulario, setFormulario] = useState(productoVacio);
   const [editando, setEditando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
+  // Estado de paginación
+  const [paginaActual, setPaginaActual] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const [totalElementos, setTotalElementos] = useState(0);
+
   useEffect(() => {
-    cargarProductos();
+    cargarPagina(0);
   }, []);
 
-  async function cargarProductos() {
+  async function cargarPagina(page) {
     try {
-      const datos = await listarProductos(usuario, clave, filtro);
-      setProductos(datos);
-      setMensaje(`Productos cargados: ${datos.length}`);
+      const data = await listarProductosPaginado(page, TAMANIO_PAGINA, usuario, clave);
+      setProductos(data.content);
+      setPaginaActual(data.page);
+      setTotalPaginas(data.totalPages);
+      setTotalElementos(data.totalElements);
+      setMensaje(`Página ${data.page + 1} de ${data.totalPages} (${data.totalElements} productos)`);
     } catch (error) {
       manejarError(error);
+    }
+  }
+
+  function paginaAnterior() {
+    if (paginaActual > 0) {
+      cargarPagina(paginaActual - 1);
+    }
+  }
+
+  function paginaSiguiente() {
+    if (paginaActual < totalPaginas - 1) {
+      cargarPagina(paginaActual + 1);
     }
   }
 
@@ -65,7 +86,7 @@ function App() {
       }
 
       limpiarFormulario();
-      await cargarProductos();
+      await cargarPagina(paginaActual);
     } catch (error) {
       manejarError(error);
     }
@@ -80,7 +101,12 @@ function App() {
     try {
       await eliminarProducto(producto.id, usuario, clave);
       setMensaje('Producto eliminado correctamente.');
-      await cargarProductos();
+
+      // Si era el único producto visible de una página que no es la primera,
+      // retrocedemos una página para no dejar la tabla vacía.
+      const eraUltimoDeLaPagina = productos.length === 1 && paginaActual > 0;
+      const paginaDestino = eraUltimoDeLaPagina ? paginaActual - 1 : paginaActual;
+      await cargarPagina(paginaDestino);
     } catch (error) {
       manejarError(error);
     }
@@ -144,8 +170,6 @@ function App() {
 
       <section className="tarjeta">
         <h2>Listado de productos</h2>
-        <input value={filtro} onChange={e => setFiltro(e.target.value)} placeholder="Buscar por nombre" />
-        <button onClick={cargarProductos}>Buscar</button>
 
         <p className="mensaje">{mensaje}</p>
 
@@ -176,6 +200,20 @@ function App() {
             ))}
           </tbody>
         </table>
+
+        <div className="paginador">
+          <button onClick={paginaAnterior} disabled={paginaActual === 0}>
+            Anterior
+          </button>
+
+          <span>
+            Página {paginaActual + 1} de {totalPaginas || 1} ({totalElementos} productos)
+          </span>
+
+          <button onClick={paginaSiguiente} disabled={paginaActual >= totalPaginas - 1}>
+            Siguiente
+          </button>
+        </div>
       </section>
     </main>
   );

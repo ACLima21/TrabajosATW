@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Producto } from '../models/producto';
+import { PaginaProducto } from '../models/pagina-producto';
 
 @Injectable({
   providedIn: 'root'
@@ -22,17 +23,19 @@ export class ProductoService {
     });
   }
 
-  listar(usuario: string, clave: string, nombre?: string): Observable<Producto[]> {
+  // Consume GET /api/productos/paginado?page=&size=
+  listarPaginado(
+    page: number,
+    size: number,
+    usuario: string,
+    clave: string
+  ): Observable<PaginaProducto> {
     const headers = this.crearHeaders(usuario, clave);
 
-    if (nombre && nombre.trim() !== '') {
-      return this.http.get<Producto[]>(
-        `${this.apiUrl}?nombre=${nombre}`,
-        { headers }
-      );
-    }
-
-    return this.http.get<Producto[]>(this.apiUrl, { headers });
+    return this.http.get<PaginaProducto>(
+      `${this.apiUrl}/paginado?page=${page}&size=${size}`,
+      { headers }
+    );
   }
 
   crear(producto: Producto, usuario: string, clave: string): Observable<Producto> {
